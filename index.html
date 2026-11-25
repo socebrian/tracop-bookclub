@@ -1,22 +1,483 @@
-        }
+       <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tracop Book Club | Books Around the World</title>
 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --background: #f7f3eb;
+      --panel: #fffdf9;
+      --green: #18342f;
+      --muted: #6f7975;
+      --border: #ddd8cf;
+      --tag: #ece8df;
+      --gold: #d9a520;
+      --grey-star: #929793;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--green);
+    }
+
+    header {
+      padding: 14px 4%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--background);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: Georgia, serif;
+      font-size: 27px;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 14px;
+    }
+
+    nav {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: var(--green);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    nav a:hover { text-decoration: underline; }
+
+    #map-section { position: relative; }
+
+    #map {
+      width: 100%;
+      height: 650px;
+    }
+
+    #country-panel {
+      position: absolute;
+      z-index: 1000;
+      top: 20px;
+      right: 20px;
+      width: min(420px, calc(100% - 40px));
+      max-height: 610px;
+      overflow: auto;
+      background: var(--panel);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+      transform: translateX(calc(100% + 50px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .25s ease, opacity .25s ease;
+    }
+
+    #country-panel.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .panel-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-family: Georgia, serif;
+      font-size: 23px;
+    }
+
+    #close-panel {
+      border: 0;
+      background: transparent;
+      color: var(--green);
+      font-size: 28px;
+      cursor: pointer;
+    }
+
+    #country-books { padding: 18px; }
+
+    .book-card {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 16px;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .book-card:last-child {
+      margin-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .cover,
+    .cover-placeholder {
+      width: 96px;
+      height: 144px;
+      border-radius: 6px;
+      background: #e5e1d9;
+      box-shadow: 0 3px 8px rgba(0,0,0,.12);
+    }
+
+    .cover { object-fit: cover; }
+
+    .cover-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      text-align: center;
+      font-family: Georgia, serif;
+      font-size: 12px;
+    }
+
+    .book-info h3 {
+      margin: 0 0 4px;
+      font-family: Georgia, serif;
+      font-size: 19px;
+    }
+
+    .author {
+      margin: 0 0 6px;
+      font-size: 14px;
+    }
+
+    .translation {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 9px 0;
+    }
+
+    .tag {
+      padding: 5px 8px;
+      border-radius: 20px;
+      background: var(--tag);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tag.status { background: #dbe8e4; }
+
+    .rating {
+      margin: 10px 0;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .rating.goodreads { color: var(--grey-star); }
+    .rating.club { color: var(--gold); }
+
+    .rating-source {
+      margin-left: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    .book-links {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .book-links a {
+      width: fit-content;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .content-section {
+      padding: 70px 8%;
+      border-top: 1px solid var(--border);
+    }
+
+    .content-section h2 {
+      margin-top: 0;
+      font-family: Georgia, serif;
+      font-size: 34px;
+    }
+
+    .content-section p {
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    #load-error {
+      display: none;
+      margin: 18px;
+      padding: 14px;
+      border: 1px solid #b06969;
+      border-radius: 8px;
+      background: #fff2f2;
+      color: #792c2c;
+    }
+
+    @media (max-width: 750px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      #map { height: 620px; }
+
+      #country-panel {
+        top: auto;
+        right: 15px;
+        bottom: 15px;
+        left: 15px;
+        width: auto;
+        max-height: 68%;
+        transform: translateY(calc(100% + 30px));
+      }
+
+      #country-panel.open { transform: translateY(0); }
+
+      .book-card {
+        grid-template-columns: 82px 1fr;
+      }
+
+      .cover,
+      .cover-placeholder {
+        width: 82px;
+        height: 123px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <h1>📚 Tracop Book Club</h1>
+      <p>Books around the world</p>
+    </div>
+
+    <nav aria-label="Main navigation">
+      <a href="#map-section">Map</a>
+      <a href="#monthly-book">This month's book</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#suggest-book">Suggest a book</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="map-section">
+      <div id="map"></div>
+      <div id="load-error" role="alert"></div>
+
+      <aside id="country-panel" aria-label="Books from selected country">
+        <div class="panel-header">
+          <h2 id="country-name"></h2>
+          <button id="close-panel" type="button" aria-label="Close country panel">×</button>
+        </div>
+        <div id="country-books"></div>
+      </aside>
+    </section>
+
+    <section id="monthly-book" class="content-section">
+      <h2>This month's book</h2>
+      <p>The current club read will be featured here.</p>
+    </section>
+
+    <section id="how-it-works" class="content-section">
+      <h2>How it works</h2>
+      <p>Members suggest books from around the world. Proposed books are put to a vote, and each month the club chooses a new book to read together.</p>
+    </section>
+
+    <section id="suggest-book" class="content-section">
+      <h2>Suggest a book</h2>
+      <p>The book suggestion form will be added here.</p>
+    </section>
+  </main>
+
+  <script>
+    const map = L.map("map", {
+      minZoom: 2,
+      maxZoom: 8,
+      worldCopyJump: true
+    }).setView([25, 10], 2);
+
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    const countryPanel = document.getElementById("country-panel");
+    const countryName = document.getElementById("country-name");
+    const countryBooks = document.getElementById("country-books");
+    const closePanel = document.getElementById("close-panel");
+    const loadError = document.getElementById("load-error");
+
+    closePanel.addEventListener("click", function () {
+      countryPanel.classList.remove("open");
+    });
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatStatus(status) {
+      const labels = {
+        recommendation: "Recommendation",
+        proposed: "Proposed",
+        read: "Read"
+      };
+      return labels[status] || status || "";
+    }
+
+    function formatTranslators(book) {
+      if (!Array.isArray(book.translators) || book.translators.length === 0) return "";
+      return '<p class="translation">Translated by ' +
+        book.translators.map(escapeHtml).join(" & ") +
+        '</p>';
+    }
+
+    function formatCategories(book) {
+      const categories = book.categories || {};
+      const all = [
+        ...(categories.form || []),
+        ...(categories.genres || []),
+        ...(categories.period || [])
+      ];
+
+      return all.map(function (category) {
+        return '<span class="tag">' + escapeHtml(category) + '</span>';
+      }).join("");
+    }
+
+    function formatRating(book) {
+      if (!book.rating || book.rating.value == null) return "";
+
+      const numericValue = Number(book.rating.value);
+      if (!Number.isFinite(numericValue)) return "";
+
+      const isClub = book.rating.source === "club";
+      const source = isClub ? "Club rating" : "Goodreads";
+      const ratingClass = isClub ? "club" : "goodreads";
+
+      return '<div class="rating ' + ratingClass + '">' +
+        '★ ' + numericValue.toFixed(2) +
+        '<span class="rating-source">' + source + '</span>' +
+        '</div>';
+    }
+
+    function formatAvailability(book) {
+      if (!Array.isArray(book.availability) || book.availability.length === 0) return "";
+
+      return book.availability.map(function (item) {
+        if (!item.url) return "";
+        return '<a href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer">' +
+          'Find at ' + escapeHtml(item.name || "library") + ' ↗</a>';
+      }).join("");
+    }
+
+    function coverMarkup(book) {
+      if (!book.cover) {
+        return '<div class="cover-placeholder">Cover coming soon</div>';
+      }
+
+      return '<img class="cover" src="' + escapeHtml(book.cover) + '" alt="Cover of ' +
+        escapeHtml(book.title) + '" onerror="this.outerHTML=\'<div class=&quot;cover-placeholder&quot;>Cover coming soon</div>\'">';
+    }
+
+    function createBookCard(book) {
+      const goodreadsLink = book.goodreadsUrl
+        ? '<a href="' + escapeHtml(book.goodreadsUrl) + '" target="_blank" rel="noopener noreferrer">View on Goodreads ↗</a>'
+        : "";
+
+      return '<article class="book-card">' +
+        coverMarkup(book) +
+        '<div class="book-info">' +
+          '<h3>' + escapeHtml(book.title) + '</h3>' +
+          '<p class="author">' + escapeHtml(book.author) + '</p>' +
+          formatTranslators(book) +
+          '<div class="tags">' +
+            formatCategories(book) +
+            '<span class="tag status">' + escapeHtml(formatStatus(book.status)) + '</span>' +
+          '</div>' +
+          formatRating(book) +
+          '<div class="book-links">' + goodreadsLink + formatAvailability(book) + '</div>' +
+        '</div>' +
+      '</article>';
+    }
+
+    function openCountry(country) {
+      const count = country.books.length;
+      countryName.textContent = country.flag + " " + country.name + " · " + count + " " + (count === 1 ? "book" : "books");
+      countryBooks.innerHTML = country.books.map(createBookCard).join("");
+      countryPanel.classList.add("open");
+    }
+
+    fetch("books.json")
+      .then(function (response) {
+        if (!response.ok) throw new Error("Could not load books.json (HTTP " + response.status + ")");
         return response.json();
-
       })
-
-      .then(books => {
-
+      .then(function (books) {
         const countries = {};
 
-
-        /* GROUP BOOKS BY COUNTRY */
-
-        books.forEach(book => {
+        books.forEach(function (book) {
+          if (!book.country || !book.country.code) return;
 
           const code = book.country.code;
 
           if (!countries[code]) {
-
             countries[code] = {
               name: book.country.name,
               code: code,
@@ -25,50 +486,29 @@
               longitude: book.country.longitude,
               books: []
             };
-
           }
 
           countries[code].books.push(book);
-
         });
 
+        Object.values(countries).forEach(function (country) {
+          const marker = L.marker([country.latitude, country.longitude]).addTo(map);
+          const count = country.books.length;
 
-        /* ONE MARKER PER COUNTRY */
+          marker.bindTooltip(
+            country.flag + " " + country.name + " · " + count + " " + (count === 1 ? "book" : "books")
+          );
 
-        Object.values(countries)
-          .forEach(country => {
-
-            const marker = L.marker([
-              country.latitude,
-              country.longitude
-            ]).addTo(map);
-
-
-            marker.bindTooltip(
-              `${country.flag} ${country.name} · ` +
-              `${country.books.length} ` +
-              `${country.books.length === 1 ? "book" : "books"}`
-            );
-
-
-            marker.on("click", () => {
-
-              openCountry(country);
-
-            });
-
+          marker.on("click", function () {
+            openCountry(country);
           });
-
+        });
       })
-
-      .catch(error => {
-
+      .catch(function (error) {
         console.error(error);
-
+        loadError.style.display = "block";
+        loadError.textContent = "The book data could not be loaded. Check that books.json is valid and stored in the same repository folder as index.html.";
       });
-
   </script>
-
 </body>
-
 </html>
