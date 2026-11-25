@@ -1,138 +1,74 @@
-<!DOCTYPE html>
-<html lang="es">
+        }
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        return response.json();
 
-  <title>Books Around the World</title>
+      })
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+      .then(books => {
 
-  <!-- Leaflet JavaScript -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin="">
-  </script>
-
-  <style>
-
-    body {
-      margin: 0;
-      font-family: Georgia, serif;
-      background-color: #f7f3eb;
-      color: #18342f;
-    }
-
-    header {
-      text-align: center;
-      padding: 35px 20px 20px;
-    }
-
-    h1 {
-      font-size: 42px;
-      margin: 0 0 8px 0;
-    }
-
-    header p {
-      font-size: 18px;
-      color: #64736e;
-      margin: 0;
-    }
-
-    #map {
-      width: 90%;
-      max-width: 1200px;
-      height: 600px;
-
-      margin: 25px auto 60px;
-
-      border-radius: 20px;
-      overflow: hidden;
-
-      box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.12);
-    }
-
-  </style>
-
-</head>
-
-<body>
-
-  <header>
-
-    <h1>📚 Books Around the World</h1>
-
-    <p>
-      Exploring the world, one book at a time.
-    </p>
-
-  </header>
-
-  <main>
-
-    <div id="map"></div>
-
-  </main>
-
-  <script>
-
-    // Crear el mapa
-    const map = L.map("map", {
-      minZoom: 2,
-      maxZoom: 8
-    }).setView([25, 10], 2);
+        const countries = {};
 
 
-    // Añadir OpenStreetMap
-    L.tileLayer(
-      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }
-    ).addTo(map);
+        /* GROUP BOOKS BY COUNTRY */
+
+        books.forEach(book => {
+
+          const code = book.country.code;
+
+          if (!countries[code]) {
+
+            countries[code] = {
+              name: book.country.name,
+              code: code,
+              flag: book.country.flag,
+              latitude: book.country.latitude,
+              longitude: book.country.longitude,
+              books: []
+            };
+
+          }
+
+          countries[code].books.push(book);
+
+        });
 
 
-    // CHINCHETA DE PRUEBA
+        /* ONE MARKER PER COUNTRY */
 
-    const spain = L.marker([40.4168, -3.7038])
-      .addTo(map);
+        Object.values(countries)
+          .forEach(country => {
+
+            const marker = L.marker([
+              country.latitude,
+              country.longitude
+            ]).addTo(map);
 
 
-    spain.bindPopup(`
-      <div style="text-align:center">
+            marker.bindTooltip(
+              `${country.flag} ${country.name} · ` +
+              `${country.books.length} ` +
+              `${country.books.length === 1 ? "book" : "books"}`
+            );
 
-        <h3 style="margin-bottom:5px;">
-          🇪🇸 España
-        </h3>
 
-        <strong>El infinito en un junco</strong>
+            marker.on("click", () => {
 
-        <br>
+              openCountry(country);
 
-        Irene Vallejo
+            });
 
-        <br><br>
+          });
 
-        ⭐⭐⭐⭐⭐
+      })
 
-      </div>
-    `);
+      .catch(error => {
+
+        console.error(error);
+
+      });
 
   </script>
 
 </body>
 
-</html>
-</body>
 </html>
